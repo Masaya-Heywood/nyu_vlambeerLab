@@ -1,5 +1,7 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 // MAZE PROC GEN LAB
@@ -15,43 +17,55 @@ public class Pathmaker : MonoBehaviour {
 	// translate the pseudocode below
 
 	//	DECLARE CLASS MEMBER VARIABLES:
-	public int counter = 0;                            //	Declare a private integer called counter that starts at 0; 		// counter will track how many floor tiles I've instantiated
-	public Transform floorPrefab;                             //	Declare a public Transform called floorPrefab, assign the prefab in inspector;
-	public Transform pathmakerSpherePrefab;				//	Declare a public Transform called pathmakerSpherePrefab, assign the prefab in inspector; 		// you'll have to make a "pathmakerSphere" prefab later
+	public static int globalCounter = 0;
+	public int counter = 0;
+	public int maxGlobalCount = 1000;
+	public int maxCount = 50;					//	Declare a private integer called counter that starts at 0; 		// counter will track how many floor tiles I've instantiated
+	public Transform floorPrefab;                        //	Declare a public Transform called floorPrefab, assign the prefab in inspector;
+	public Transform pathmakerSpherePrefab;             //	Declare a public Transform called pathmakerSpherePrefab, assign the prefab in inspector; 		// you'll have to make a "pathmakerSphere" prefab later
+	public static int floorCount = 0;
+	public static int floorMax = 0;   // This script holds the 500 limiter for all pathmakers
+	private int speed = 5;
+	public Camera Second;
 
 
-	void Update () {
-		if (counter < 50)
+	void Start()
+    {
+		CreatePath();
+		maxCount = UnityEngine.Random.Range(20, 100);
+	}
+    void Update () {
+		if (counter < maxCount && globalCounter < maxGlobalCount)
         {
-			float randNum = Random.Range(0.0f,1.0f);
-			//float degrees = randNum < .25f ? 90f : (randNum < .25f && randNum =< .5f ? -90 : 0f);
+			float randNum = UnityEngine.Random.Range(0.0f,1.0f);
 
 			if (randNum < .25f)
             {
-				transform.rotation = Quaternion.Euler(Vector3.forward * 90);
+				//transform.rotation = Quaternion.Euler(0,90,0);
+				transform.Rotate(0, 90, 0);
 
-			} else if (randNum <= .25f && randNum >= .5f){
-				transform.rotation = Quaternion.Euler(Vector3.forward * -90);
+			} else if (randNum >= .25f && randNum <= .5f){
+				//transform.rotation = Quaternion.Euler(0, -90,0);
+				transform.Rotate(0, -90, 0);
 
-			} else if (randNum <= .99f && randNum >= 1.0f)
+			} else if (randNum >= .95f && randNum <= 1.0f)
             {
-				Instantiate(pathmakerSpherePrefab, transform.position, transform.rotation);
-            }
+				Instantiate(pathmakerSpherePrefab, transform.position, Quaternion.Euler(0, 0, 0));
+				//newPathfinder.GetComponent<Pathmaker>().counter = 0;
+				//CreateNewPathmaker();
 
+			}
+			print(randNum);
+			transform.Translate(Vector3.forward * speed);
+			counter++;
+
+		} else if (counter >= maxCount)
+        {
+			Destroy(this.gameObject);
 		}
 
-		Instantiate(floorPrefab, transform.position, transform.rotation);
-
-		//moving
-		if (counter < 50)
-        {
-			transform.position += new Vector3(0, 5, 0);
-		} else
-        {
-			Destroy(gameObject);
-        }
-
-
+		CreatePath();
+	
 		//		If counter is less than 50, then:
 		//			Generate a random number from 0.0f to 1.0f;
 		//			If random number is less than 0.25f, then rotate myself 90 degrees;
@@ -66,7 +80,23 @@ public class Pathmaker : MonoBehaviour {
 		//			Destroy my game object; 		// self destruct if I've made enough tiles already
 	}
 
-} 
+	void CreatePath()
+	{
+		Instantiate(floorPrefab, transform.position, Quaternion.Euler(0, 0, 0));
+		//cameraMovement.GetComponent<CameraMovement>().floorPosition.Add(transform.position);
+		floorCount++;
+	}
+
+	void CreateNewPathmaker()
+    {
+		GameObject newPathfinder;
+		newPathfinder = Instantiate(gameObject, transform.position, transform.rotation);
+		newPathfinder.GetComponent<Pathmaker>().floorPrefab = floorPrefab;
+		floorPrefab.GetComponent<Renderer>().material.SetColor("_Color", Color.red);
+	}
+
+}
+
 
 // MORE STEPS BELOW!!!........
 
@@ -76,6 +106,9 @@ public class Pathmaker : MonoBehaviour {
 //	IMPLEMENT AND TEST:
 //	- save your scene! the code could potentially be infinite / exponential, and crash Unity
 //	- put Pathmaker.cs on a sphere, configure all the prefabs in the Inspector, and test it to make sure it works
+
+
+
 //	STABILIZE: 
 //	- code it so that all the Pathmakers can only spawn a grand total of 500 tiles in the entire world; how would you do that?
 //	- hint: declare a "public static int" and have each Pathmaker check this "globalTileCount", somewhere in your code? 
